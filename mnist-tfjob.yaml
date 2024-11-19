@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: kubeflow.org/v1
+kind: TFJob
+metadata:
+  name: mnist
+  labels:
+    app: mnist-tfjob
+spec:
+  tfReplicaSpecs:
+    Worker:
+      replicas: 1
+      restartPolicy: OnFailure
+      template:
+        spec:
+          containers:
+          - name: tensorflow
+            image: hek1412/mnist-tfjob:v3
+            command: ["python", "/app/mnist_model.py"]
+            resources:
+              requests:
+                memory: "1Gi"
+                cpu: "0.5"
+              limits:
+                memory: "2Gi"
+                cpu: "1"
+            volumeMounts:
+              - name: model-volume
+                mountPath: /results
+          volumes:
+            - name: model-volume
+              persistentVolumeClaim:
+                claimName: model-pvc
